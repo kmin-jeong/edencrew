@@ -1,4 +1,6 @@
 import '../../data/dto/stock_dtos.dart';
+import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 
 enum PriceDirection { up, down, flat }
 
@@ -62,4 +64,19 @@ class DomesticStock {
     accumulatedVolume: quote.accumulatedVolume,
     marketCap: quote.marketCap,
   );
+}
+
+// domestic_stock.dart 맨 아래에 추가
+extension PriceDirectionColors on PriceDirection {
+  Color textColor(AppColors colors) => switch (this) {
+    PriceDirection.up => colors.priceUpText,
+    PriceDirection.down => colors.priceDownText,
+    PriceDirection.flat => colors.priceFlatText,
+  };
+
+  Color bgColor(AppColors colors) => switch (this) {
+    PriceDirection.up => colors.priceUpBg,
+    PriceDirection.down => colors.priceDownBg,
+    PriceDirection.flat => colors.priceFlatBg,
+  };
 }

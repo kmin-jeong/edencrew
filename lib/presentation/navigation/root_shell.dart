@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/theme.dart';
 import '../screens/watchlist/watchlist_screen.dart';
 import '../screens/search/search_screen.dart';
 
@@ -21,6 +22,9 @@ class _RootShellState extends State<RootShell> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
+        selectedItemColor: context.colors.navActive,
+        unselectedItemColor: context.colors.navInactive,
+        backgroundColor: context.colors.surfaceRaised,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.star), label: '관심'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: '검색'),
