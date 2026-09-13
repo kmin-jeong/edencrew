@@ -5,7 +5,7 @@ import 'theme/theme.dart';
 import 'data/remote/stock_api_client.dart';
 import 'state/favorite_controller.dart';
 import 'state/watchlist_controller.dart';
-// import 'state/search_controller.dart' as app_search;
+import 'state/search_controller.dart' as app_search;
 import 'presentation/navigation/root_shell.dart';
 
 void main() {
@@ -16,7 +16,9 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => FavoriteController()),
         ChangeNotifierProvider(create: (_) => WatchlistController(apiClient)),
-        // ChangeNotifierProvider(create: (_) => app_search.SearchController(apiClient)),
+        ChangeNotifierProvider(
+          create: (_) => app_search.SearchController(apiClient),
+        ),
       ],
       child: const EdencrewAssignmentApp(),
     ),

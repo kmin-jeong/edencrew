@@ -3,12 +3,14 @@ class SearchItemDto {
   final String code;
   final String name;
   final String typeCode;
+  final String typeName; // 추가: "코스피" 같은 표시용 시장명
   final String nationCode;
 
   SearchItemDto({
     required this.code,
     required this.name,
     required this.typeCode,
+    required this.typeName,
     required this.nationCode,
   });
 
@@ -16,6 +18,7 @@ class SearchItemDto {
     code: json['code'] as String? ?? '',
     name: json['name'] as String? ?? '',
     typeCode: json['typeCode'] as String? ?? '',
+    typeName: json['typeName'] as String? ?? '',
     nationCode: json['nationCode'] as String? ?? '',
   );
 
