@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'lib/data/remote/stock_api_client.dart';
 
 const _headers = {
   'User-Agent':
@@ -8,7 +9,7 @@ const _headers = {
 };
 
 Future<void> main() async {
-  // 1. 검색 자동완성 (UTF-8 정상)
+  // 1. 검색 자동완성
   final searchUri = Uri.parse('https://ac.stock.naver.com/ac').replace(
     queryParameters: {'q': '삼성전자', 'target': 'stock,ipo,index,marketindicator'},
   );
@@ -21,9 +22,7 @@ Future<void> main() async {
     ).convert(jsonDecode(utf8.decode(searchRes.bodyBytes))),
   );
 
-  // 2. 실시간 시세 (EUC-KR로 응답 옴 -> latin1로 디코딩)
-  // 사용하는 필드(cd, nv, pcv, ov, hv, lv, aq, countOfListedStock)는
-  // 전부 숫자/영문이라 latin1로 디코딩해도 JSON 구조는 깨지지 않음.
+  // 2. 실시간 시세
   final realtimeUri = Uri.parse(
     'https://polling.finance.naver.com/api/realtime',
   ).replace(queryParameters: {'query': 'SERVICE_ITEM:005930'});
@@ -36,7 +35,7 @@ Future<void> main() async {
     ).convert(jsonDecode(latin1.decode(realtimeRes.bodyBytes))),
   );
 
-  // 3. 종목 메타데이터 (UTF-8 정상)
+  // 3. 종목 메타데이터
   final metaUri = Uri.parse(
     'https://stock.naver.com/api/securityFe/api/fchart/domestic/stock/005930',
   );
@@ -48,4 +47,23 @@ Future<void> main() async {
       '  ',
     ).convert(jsonDecode(utf8.decode(metaRes.bodyBytes))),
   );
+
+  // 4. 일별 시세
+  await testDailyPrice();
+}
+
+Future<void> testDailyPrice() async {
+  final api = StockApiClient();
+  final result = await api.fetchDailyPricePage(symbol: '005930', page: 1);
+
+  print('\n=== DAILY PRICE (page 1) ===');
+  print('lastPage: ${result.lastPage}');
+  print('row count: ${result.rows.length}');
+  for (final row in result.rows) {
+    print(
+      '${row.normalizedDate} | close=${row.closePrice} open=${row.openPrice} '
+      'high=${row.highPrice} low=${row.lowPrice} vol=${row.volume}',
+    );
+  }
+  api.dispose();
 }

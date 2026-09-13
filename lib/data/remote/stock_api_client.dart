@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:charset/charset.dart';
 import 'package:http/http.dart' as http;
 import '../dto/stock_dtos.dart';
+import 'daily_sise_parser.dart';
 
 class StockApiClient {
   final http.Client _client;
@@ -35,6 +37,9 @@ class StockApiClient {
         .toList();
   }
 
+  // 2. 실시간 시세 (여러 종목 한 번에)
+  // 이 endpoint는 EUC-KR로 응답을 줌. 우리가 쓰는 필드는 전부 숫자/영문이라
+  // latin1로 디코딩해도 JSON 구조는 안 깨짐. 한글 필드(nm 등)는 안 씀.
   Future<Map<String, RealtimeQuoteDto>> fetchRealtimeQuotes(
     List<String> symbols,
   ) async {
@@ -76,6 +81,30 @@ class StockApiClient {
 
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
     return StockMetaDto.fromJson(body);
+  }
+
+  // 4. 일별 시세 (HTML, 페이지 단위)
+  // 이 endpoint는 EUC-KR 인코딩. euc 패키지로 정확히 디코딩해야 날짜/숫자
+  // 텍스트가 안 깨짐 (한글은 안 쓰지만 표 구조 자체가 깨질 수 있음).
+  Future<({List<DailyPriceRawRow> rows, int lastPage})> fetchDailyPricePage({
+    required String symbol,
+    required int page,
+  }) async {
+    final uri = Uri.parse(
+      'https://finance.naver.com/item/sise_day.naver',
+    ).replace(queryParameters: {'code': symbol, 'page': '$page'});
+
+    final res = await _client.get(uri, headers: _headers);
+    if (res.statusCode != 200) {
+      throw Exception('일별시세 요청 실패: ${res.statusCode}');
+    }
+
+    final htmlBody = eucKr.decode(res.bodyBytes);
+
+    return (
+      rows: DailySisePageParser.parseRows(htmlBody),
+      lastPage: DailySisePageParser.parseLastPage(htmlBody),
+    );
   }
 
   void dispose() => _client.close();
