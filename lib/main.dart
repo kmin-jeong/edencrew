@@ -14,6 +14,7 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
+        Provider<StockApiClient>.value(value: apiClient), // 추가된 줄
         ChangeNotifierProvider(create: (_) => FavoriteController()),
         ChangeNotifierProvider(create: (_) => WatchlistController(apiClient)),
         ChangeNotifierProvider(
