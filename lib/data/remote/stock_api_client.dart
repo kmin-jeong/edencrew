@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:charset/charset.dart';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../dto/stock_dtos.dart';
 import 'daily_sise_parser.dart';
@@ -14,6 +14,8 @@ class StockApiClient {
     'Referer': 'https://finance.naver.com/',
   };
 
+  static const _timeout = Duration(seconds: 8);
+
   // 1. 검색 자동완성 (UTF-8)
   Future<List<SearchItemDto>> searchStocks(String query) async {
     final uri = Uri.parse('https://ac.stock.naver.com/ac').replace(
@@ -23,7 +25,9 @@ class StockApiClient {
       },
     );
 
-    final res = await _client.get(uri, headers: _headers);
+    final res = await _client
+        .get(uri, headers: _headers)
+        .timeout(_timeout, onTimeout: () => throw Exception('검색 요청 시간 초과'));
     if (res.statusCode != 200) {
       throw Exception('검색 요청 실패: ${res.statusCode}');
     }
@@ -45,12 +49,14 @@ class StockApiClient {
   ) async {
     if (symbols.isEmpty) return {};
 
-    final query = symbols.map((s) => 'SERVICE_ITEM:$s').join(',');
+    final query = 'SERVICE_ITEM:${symbols.join(",")}';
     final uri = Uri.parse(
       'https://polling.finance.naver.com/api/realtime',
     ).replace(queryParameters: {'query': query});
 
-    final res = await _client.get(uri, headers: _headers);
+    final res = await _client
+        .get(uri, headers: _headers)
+        .timeout(_timeout, onTimeout: () => throw Exception('시세 요청 시간 초과'));
     if (res.statusCode != 200) {
       throw Exception('시세 요청 실패: ${res.statusCode}');
     }
@@ -76,7 +82,12 @@ class StockApiClient {
       'https://stock.naver.com/api/securityFe/api/fchart/domestic/stock/$symbol',
     );
 
-    final res = await _client.get(uri, headers: _headers);
+    final res = await _client
+        .get(uri, headers: _headers)
+        .timeout(
+          _timeout,
+          onTimeout: () => throw Exception('메타데이터 요청 시간 초과: $symbol'),
+        );
     if (res.statusCode != 200) return null;
 
     final body = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
@@ -84,8 +95,7 @@ class StockApiClient {
   }
 
   // 4. 일별 시세 (HTML, 페이지 단위)
-  // 이 endpoint는 EUC-KR 인코딩. euc 패키지로 정확히 디코딩해야 날짜/숫자
-  // 텍스트가 안 깨짐 (한글은 안 쓰지만 표 구조 자체가 깨질 수 있음).
+  // 이 endpoint는 EUC-KR 인코딩. charset 패키지로 정확히 디코딩해야 함.
   Future<({List<DailyPriceRawRow> rows, int lastPage})> fetchDailyPricePage({
     required String symbol,
     required int page,
@@ -94,7 +104,12 @@ class StockApiClient {
       'https://finance.naver.com/item/sise_day.naver',
     ).replace(queryParameters: {'code': symbol, 'page': '$page'});
 
-    final res = await _client.get(uri, headers: _headers);
+    final res = await _client
+        .get(uri, headers: _headers)
+        .timeout(
+          _timeout,
+          onTimeout: () => throw Exception('일별시세 요청 시간 초과: $symbol page=$page'),
+        );
     if (res.statusCode != 200) {
       throw Exception('일별시세 요청 실패: ${res.statusCode}');
     }

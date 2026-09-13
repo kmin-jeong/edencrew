@@ -9,9 +9,7 @@ class WatchlistController extends ChangeNotifier {
   final FavoriteController _favoriteController;
 
   WatchlistController(this._api, this._favoriteController) {
-    // 관심 상태가 바뀔 때마다 자동으로 동기화 (어느 화면에 있든 상관없이)
     _favoriteController.addListener(_onFavoritesChanged);
-    // 생성 시점에 이미 있는 관심종목 즉시 반영
     Future.microtask(() => syncWithFavorites(_favoriteController.favoriteIds));
   }
 
@@ -29,6 +27,9 @@ class WatchlistController extends ChangeNotifier {
   SortOption _sortOption = SortOption.nameAsc;
   bool _isLoading = false;
 
+  bool _refreshInFlight = false;
+  bool _refreshQueued = false;
+
   bool get isLoading => _isLoading;
   SortOption get sortOption => _sortOption;
   bool get isEmpty => _stocksById.isEmpty;
@@ -36,8 +37,6 @@ class WatchlistController extends ChangeNotifier {
   List<DomesticStock> get sortedStocks {
     final list = _stocksById.values.toList();
 
-    // 시세 미수신 행은 정렬 기준과 무관하게 맨 아래 고정
-    // (Figma에 정의 없는 부분 - 직접 판단)
     final withQuote = list.where((s) => s.hasQuote).toList();
     final withoutQuote = list.where((s) => !s.hasQuote).toList();
 
@@ -61,13 +60,8 @@ class WatchlistController extends ChangeNotifier {
   }
 
   Future<void> syncWithFavorites(List<String> canonicalIds) async {
-    final currentIds = _stocksById.keys.toSet();
+    print('>>> syncWithFavorites called with: $canonicalIds');
     final newIds = canonicalIds.toSet();
-
-    // 변화가 없으면 불필요한 재요청 방지
-    if (currentIds.length == newIds.length && currentIds.containsAll(newIds)) {
-      return;
-    }
 
     _stocksById.removeWhere((id, _) => !newIds.contains(id));
 
@@ -88,6 +82,23 @@ class WatchlistController extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    if (_refreshInFlight) {
+      print('[watchlist] refresh already in flight, queueing');
+      _refreshQueued = true;
+      return;
+    }
+    _refreshInFlight = true;
+    await _doRefresh();
+    _refreshInFlight = false;
+
+    if (_refreshQueued) {
+      _refreshQueued = false;
+      print('[watchlist] running queued refresh');
+      await refresh();
+    }
+  }
+
+  Future<void> _doRefresh() async {
     if (_stocksById.isEmpty) {
       notifyListeners();
       return;
@@ -97,9 +108,19 @@ class WatchlistController extends ChangeNotifier {
 
     try {
       final symbols = _stocksById.values.map((s) => s.symbol).toList();
+      print('[watchlist] refresh start: $symbols');
 
       final metaResults = await Future.wait(
-        symbols.map((s) => _api.fetchStockMeta(s)),
+        symbols.map((s) async {
+          try {
+            final meta = await _api.fetchStockMeta(s);
+            print('[watchlist] meta OK: $s -> ${meta?.stockName}');
+            return meta;
+          } catch (e) {
+            print('[watchlist] meta FAIL: $s -> $e');
+            return null;
+          }
+        }),
       );
 
       for (var i = 0; i < symbols.length; i++) {
@@ -124,16 +145,22 @@ class WatchlistController extends ChangeNotifier {
         );
       }
 
-      final quotes = await _api.fetchRealtimeQuotes(symbols);
-      for (final entry in quotes.entries) {
-        final id = DomesticStock.canonicalIdOf(entry.key);
-        final current = _stocksById[id];
-        if (current == null) continue;
-        _stocksById[id] = current.withQuote(entry.value);
+      try {
+        final quotes = await _api.fetchRealtimeQuotes(symbols);
+        print('[watchlist] quotes OK: ${quotes.keys}');
+        for (final entry in quotes.entries) {
+          final id = DomesticStock.canonicalIdOf(entry.key);
+          final current = _stocksById[id];
+          if (current == null) continue;
+          _stocksById[id] = current.withQuote(entry.value);
+        }
+      } catch (e) {
+        print('[watchlist] quotes FAIL: $e');
       }
     } finally {
       _isLoading = false;
       notifyListeners();
+      print('[watchlist] refresh done');
     }
   }
 }
