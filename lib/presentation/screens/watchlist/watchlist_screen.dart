@@ -34,6 +34,44 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
       appBar: AppBar(
         title: const Text('관심'),
         actions: [
+          // 정렬 칩 - 새로고침 아이콘 바로 옆에 위치
+          GestureDetector(
+            onTap: () async {
+              final selected = await showSortBottomSheet(
+                context,
+                current: watchlist.sortOption,
+              );
+              if (selected != null) {
+                context.read<WatchlistController>().changeSort(selected);
+              }
+            },
+            child: Container(
+              margin: EdgeInsets.only(right: dimens.space2),
+              padding: EdgeInsets.symmetric(
+                horizontal: dimens.space3,
+                vertical: dimens.space1,
+              ),
+              decoration: BoxDecoration(
+                color: colors.accentBg,
+                borderRadius: BorderRadius.circular(dimens.radiusMd),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    watchlist.sortOption.label,
+                    style: TextStyle(color: colors.accentDefault, fontSize: 13),
+                  ),
+                  SizedBox(width: dimens.space1),
+                  Icon(
+                    Icons.expand_more,
+                    size: dimens.iconSm,
+                    color: colors.accentDefault,
+                  ),
+                ],
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<WatchlistController>().refresh(),
@@ -44,73 +82,13 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
           ? _EmptyWatchlist(colors: colors, dimens: dimens)
           : RefreshIndicator(
               onRefresh: () => context.read<WatchlistController>().refresh(),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: dimens.space4,
-                      vertical: dimens.space2,
-                    ),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: GestureDetector(
-                        onTap: () async {
-                          final selected = await showSortBottomSheet(
-                            context,
-                            current: watchlist.sortOption,
-                          );
-                          if (selected != null) {
-                            context.read<WatchlistController>().changeSort(
-                              selected,
-                            );
-                          }
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: dimens.space3,
-                            vertical: dimens.space2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: colors.accentBg,
-                            borderRadius: BorderRadius.circular(
-                              dimens.radiusMd,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                watchlist.sortOption.label,
-                                style: TextStyle(
-                                  color: colors.accentDefault,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              SizedBox(width: dimens.space1),
-                              Icon(
-                                Icons.expand_more,
-                                size: dimens.iconSm,
-                                color: colors.accentDefault,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: watchlist.sortedStocks.length,
-                      separatorBuilder: (_, __) =>
-                          Divider(height: 1, color: colors.borderSubtle),
-                      itemBuilder: (context, index) {
-                        return WatchlistItem(
-                          stock: watchlist.sortedStocks[index],
-                        );
-                      },
-                    ),
-                  ),
-                ],
+              child: ListView.separated(
+                itemCount: watchlist.sortedStocks.length,
+                separatorBuilder: (_, __) =>
+                    Divider(height: 1, color: colors.borderSubtle),
+                itemBuilder: (context, index) {
+                  return WatchlistItem(stock: watchlist.sortedStocks[index]);
+                },
               ),
             ),
     );

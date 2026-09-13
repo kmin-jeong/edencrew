@@ -14,9 +14,14 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        Provider<StockApiClient>.value(value: apiClient), // 추가된 줄
+        Provider<StockApiClient>.value(value: apiClient),
         ChangeNotifierProvider(create: (_) => FavoriteController()),
-        ChangeNotifierProvider(create: (_) => WatchlistController(apiClient)),
+        ChangeNotifierProvider(
+          create: (context) => WatchlistController(
+            apiClient,
+            context.read<FavoriteController>(),
+          ),
+        ),
         ChangeNotifierProvider(
           create: (_) => app_search.SearchController(apiClient),
         ),
