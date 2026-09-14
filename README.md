@@ -29,18 +29,18 @@
 - **상태관리**: Provider (`ChangeNotifier`)
   - Flutter가 처음이라 러닝커브가 낮은 쪽을 택했습니다. 관심 상태를 여러 화면이 공유해야 하는 요구사항 정도는 Provider로 충분히 커버됩니다.
 - **폴더 구조**
-lib/
-├── core/utils/ # 숫자·날짜 포맷 등 순수 유틸
-├── data/
-│ ├── dto/ # API 응답 그대로 매핑 (fromJson 전담)
-│ └── remote/ # HTTP 요청, HTML 파싱, 페이지 캐싱
-├── domain/models/ # 화면에서 쓰는 통합 도메인 모델
-├── state/ # ChangeNotifier 컨트롤러
-├── theme/ # 디자인 토큰 (기존 제공)
-└── presentation/
-├── navigation/ # 하단 탭바 뼈대
-├── screens/ # 관심/검색/상세
-└── widgets/ # 공통 컴포넌트
+        lib/
+        ├── core/utils/ # 숫자·날짜 포맷 등 순수 유틸
+        ├── data/
+        │ ├── dto/ # API 응답 그대로 매핑 (fromJson 전담)
+        │ └── remote/ # HTTP 요청, HTML 파싱, 페이지 캐싱
+        ├── domain/models/ # 화면에서 쓰는 통합 도메인 모델
+        ├── state/ # ChangeNotifier 컨트롤러
+        ├── theme/ # 디자인 토큰 (기존 제공)
+        └── presentation/
+        ├── navigation/ # 하단 탭바 뼈대
+        ├── screens/ # 관심/검색/상세
+        └── widgets/ # 공통 컴포넌트
 
   API 응답 구조(DTO)와 화면이 쓰는 모델(도메인)을 분리해서, API가 바뀌어도 화면 코드는 영향받지 않도록 했습니다.
 - **주요 패키지**: `provider`, `http`, `html`(일별 시세 HTML 파싱), `charset`(EUC-KR 디코딩)
